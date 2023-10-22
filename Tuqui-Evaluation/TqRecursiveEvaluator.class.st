@@ -63,6 +63,14 @@ TqRecursiveEvaluator >> initializePrimitives [
 		at: #ClosureWhileFalse put: self primitiveClosureWhileFalse
 ]
 
+{ #category : #utilities }
+TqRecursiveEvaluator >> lookup: symbol on: behavior [ 
+	| methodDict superclassBehavior |
+	methodDict := runtime behaviorMethodDictionary:  behavior.
+	superclassBehavior  :=  runtime behaviorNext: behavior.
+	^ methodDict atKey: symbol ifAbsent: [^ self lookup: symbol on: superclassBehavior].
+]
+
 { #category : #visiting }
 TqRecursiveEvaluator >> primitiveClosureWhileFalse [
 	^ [ self
@@ -152,4 +160,23 @@ TqRecursiveEvaluator >> visitMethod: methodAST [
 	primitive := methodAST primitive.
 	primitive ifNotNil: [ self shouldBeImplemented ].
 	^ self visitStatements: methodAST statements.
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitReturn: returnAST [
+	returnAST local ifFalse: [ ^ self shouldBeImplemented ].
+	^ returnAST expression acceptVisitor: self.
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitStatements: statements [ 
+	| lastStatementAST lastResult |
+	lastStatementAST := nil. lastResult := nil.
+
+	statements do: [ :statementAST |
+		lastStatementAST := statementAST.
+		lastResult := statementAST acceptVisitor: self ].
+	(lastStatementAST isNotNil and: [ lastStatementAST isReturn ])
+		ifTrue: [ ^ lastResult ]
+		ifFalse: [ ^ context receiver ].
 ]
