@@ -77,6 +77,27 @@ TqRecursiveEvaluator >> primitiveClosureWhileTrue [
 		whileTrue: context arguments first ]
 ]
 
+{ #category : #controlling }
+TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper [
+	| behavior method ast methodContext |
+	behavior := runtime behaviorOf: receiver.
+	"CHECK: Tal vez tenemos que revisar el superbehavior del método actual, no el del receiver "
+	isSuper ifTrue: [ behavior := runtime behaviorNext: behavior ].
+	method := self lookup: symbol on: behavior.
+	ast := runtime sexpressionsOf: method.
+
+	methodContext := TqRecursiveLinkedContext new.
+	methodContext
+		runtime: runtime;
+		parent: context;
+		method: method;
+		arguments: arguments;
+		self: receiver.
+	context := methodContext.
+
+	^ ast acceptVisitor: self.
+]
+
 { #category : #visiting }
 TqRecursiveEvaluator >> send: aSymbol to: receiver with: arguments super: aBoolean sendSite: anSMessage [
 
@@ -108,4 +129,27 @@ TqRecursiveEvaluator >> superBehaviorOf: class [
 	| superclass |
 	superclass := self speciesSuperclass: class.
 	^ self speciesInstanceBehavior: superclass
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitIdentifier: identifierAST [
+	^ identifierAST binding valueWithin: self context.
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitMessage: messageAST [
+	| receiver arguments selector |
+	receiver := messageAST receiver.
+	arguments := messageAST arguments collect: [ :argumentAST |  argumentAST acceptVisitor: self ].
+	selector := messageAST selector.
+	"TODO: Soportar super"
+	self send: selector to: receiver  with: arguments super: false.
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitMethod: methodAST [
+	| primitive |
+	primitive := methodAST primitive.
+	primitive ifNotNil: [ self shouldBeImplemented ].
+	^ self visitStatements: methodAST statements.
 ]
