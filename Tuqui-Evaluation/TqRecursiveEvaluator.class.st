@@ -87,23 +87,25 @@ TqRecursiveEvaluator >> primitiveClosureWhileTrue [
 
 { #category : #controlling }
 TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper [
-	| behavior method ast methodContext |
+	| behavior method ast environmentSize environment |
 	behavior := runtime behaviorOf: receiver.
 	"CHECK: Tal vez tenemos que revisar el superbehavior del método actual, no el del receiver "
 	isSuper ifTrue: [ behavior := runtime behaviorNext: behavior ].
 	method := self lookup: symbol on: behavior.
 	ast := runtime sexpressionsOf: method.
 
-	methodContext := TqRecursiveLinkedContext new.
-	methodContext
+	environmentSize  := runtime methodEnvironmentSize: method.
+	environment := runtime newEnvironmentSized: environmentSize.
+	context := TqRecursiveLinkedContext new
 		runtime: runtime;
-		parent: context;
-		method: method;
+		self: receiver;
 		arguments: arguments;
-		self: receiver.
-	context := methodContext.
+		environment: environment;
+		parent: context;
+		method: method.
 
-	^ ast acceptVisitor: self.
+
+	^ context evaluateFor: self.
 ]
 
 { #category : #visiting }
@@ -140,32 +142,54 @@ TqRecursiveEvaluator >> superBehaviorOf: class [
 ]
 
 { #category : #visiting }
+TqRecursiveEvaluator >> visitAssignment: assignmentAST [
+	| value |
+	value := assignmentAST expression acceptVisitor: self.
+	assignmentAST assignees do: [ :assignee | assignee binding  assign: value within: self context ].
+	 ^ value
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitBlock: blockAST [ 
+	^ self context captureClosure: blockAST.
+]
+
+{ #category : #visiting }
 TqRecursiveEvaluator >> visitIdentifier: identifierAST [
 	^ identifierAST binding valueWithin: self context.
 ]
 
 { #category : #visiting }
+TqRecursiveEvaluator >> visitLiteral: literalAST [ 
+	^ literalAST value.
+]
+
+{ #category : #visiting }
 TqRecursiveEvaluator >> visitMessage: messageAST [
 	| receiver arguments selector |
-	receiver := messageAST receiver.
+	receiver := messageAST receiver acceptVisitor: self.
 	arguments := messageAST arguments collect: [ :argumentAST |  argumentAST acceptVisitor: self ].
 	selector := messageAST selector.
+	undermessages at: selector ifPresent: [ :v | ^ v value: receiver value: arguments ].
 	"TODO: Soportar super"
-	self send: selector to: receiver  with: arguments super: false.
+	^ self send: selector to: receiver  with: arguments super: false
 ]
 
 { #category : #visiting }
 TqRecursiveEvaluator >> visitMethod: methodAST [
 	| primitive |
 	primitive := methodAST primitive.
-	primitive ifNotNil: [ self shouldBeImplemented ].
+	primitive ifNotNil: [ ^ (primitives at: primitive) value ].
 	^ self visitStatements: methodAST statements.
 ]
 
 { #category : #visiting }
 TqRecursiveEvaluator >> visitReturn: returnAST [
-	returnAST local ifFalse: [ ^ self shouldBeImplemented ].
-	^ returnAST expression acceptVisitor: self.
+	| result |
+	result := returnAST expression acceptVisitor: self.
+	returnAST local ifFalse: [ ^ self context return: result ].
+	context := context parent.
+	^ result
 ]
 
 { #category : #visiting }
