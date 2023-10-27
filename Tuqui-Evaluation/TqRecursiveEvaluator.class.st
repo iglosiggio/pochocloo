@@ -63,6 +63,11 @@ TqRecursiveEvaluator >> initializePrimitives [
 		at: #ClosureWhileFalse put: self primitiveClosureWhileFalse
 ]
 
+{ #category : #accessing }
+TqRecursiveEvaluator >> lookup: aTqByteObject startingAt: aTqBehaviorObject [ 
+	^runtime doLookup: aTqByteObject startingAt: aTqBehaviorObject 
+]
+
 { #category : #visiting }
 TqRecursiveEvaluator >> primitiveClosureWhileFalse [
 	^ [ self
@@ -75,6 +80,29 @@ TqRecursiveEvaluator >> primitiveClosureWhileTrue [
 	^ [ self
 		evaluateClosure: context self
 		whileTrue: context arguments first ]
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> send: aSymbol to: receiver with: arguments super: aBoolean [
+	| behavior method environment size |
+	behavior := aBoolean
+		            ifTrue: [ runtime superBehaviorOf: context classBinding ]
+		            ifFalse: [ runtime behaviorOf: receiver ].
+	method := self
+		          lookup: aSymbol
+		          startingAt: behavior.
+	method isBlock ifTrue: [ ^ method value: receiver value: arguments ].
+	self ASSERT: method notNil.
+	size := runtime methodEnvironmentSize: method.
+	environment := runtime newEnvironmentSized: size.
+	context := TqRecursiveLinkedContext new
+		           runtime: runtime;
+		           self: receiver;
+		           arguments: arguments;
+		           environment: environment;
+		           parent: context;
+		           method: method.
+	^ context evaluateFor: self
 ]
 
 { #category : #visiting }
@@ -108,4 +136,19 @@ TqRecursiveEvaluator >> superBehaviorOf: class [
 	| superclass |
 	superclass := self speciesSuperclass: class.
 	^ self speciesInstanceBehavior: superclass
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitIdentifier: aTqIdentifier [ 
+	self shouldBeImplemented.
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitMethod: aTqMethod [ 
+	aTqMethod statements do: [ :statement | statement acceptVisitor: self]
+]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visitReturn: aTqReturn [ 
+	^aTqReturn expression acceptVisitor: self
 ]
