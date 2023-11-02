@@ -212,7 +212,7 @@ TqEvaluator >> primitiveBehavior [
 	| receiver |
 	^ [ receiver := context self.
 	receiver isImmediate
-		ifTrue: [ self smallintBehavior ]
+		ifTrue: [ self runtime smallIntegerBehavior ]
 		ifFalse: [ receiver behavior ] ]
 ]
 
