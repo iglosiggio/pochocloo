@@ -213,3 +213,12 @@ TqRecursiveEvaluator >> visitStatements: statements [
 		ifTrue: [ ^ lastResult ]
 		ifFalse: [ ^ context receiver ].
 ]
+
+{ #category : #visiting }
+TqRecursiveEvaluator >> visiteCascadeMessage: cascadeMessageAST for: receiver [ 
+	| arguments selector |
+	selector := cascadeMessageAST selector.
+	arguments := cascadeMessageAST arguments collect: [ :arg | arg acceptVisitor: self ].
+	"TODO: SUPER!!!"
+	self send: selector to: receiver with: arguments super: false.
+]
