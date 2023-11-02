@@ -155,6 +155,15 @@ TqRecursiveEvaluator >> visitBlock: blockAST [
 ]
 
 { #category : #visiting }
+TqRecursiveEvaluator >> visitCascade: cascadeAST [
+	| receiver | 
+	receiver :=  cascadeAST receiver acceptVisitor: self.
+	cascadeAST messages do: [ :message | self visiteCascadeMessage: message for: receiver. ].
+
+	^ receiver.
+]
+
+{ #category : #visiting }
 TqRecursiveEvaluator >> visitIdentifier: identifierAST [
 	^ identifierAST binding valueWithin: self context.
 ]
