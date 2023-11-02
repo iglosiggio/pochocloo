@@ -20,9 +20,9 @@ TqRecursiveLinkedContext >> evaluateFor: interpreter [
 ]
 
 { #category : #initialization }
-TqRecursiveLinkedContext >> initializeForBlock: tqBlock args: blockArguments closure: tqClosure [ 
+TqRecursiveLinkedContext >> initializeForBlock: block args: blockArguments closure: tqClosure [ 
 	arguments := blockArguments.
-	method := tqBlock.
+	method := block.
 	environment := tqClosure.
 ]
 

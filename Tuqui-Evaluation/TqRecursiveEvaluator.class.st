@@ -34,7 +34,7 @@ TqRecursiveEvaluator >> evaluateClosure: closure withArgs: arguments [
 		beBlock;
 		parent: context;
 		self: receiver;
-		initializeForBlock: sblock args: arguments closure: closure.
+		initializeForBlock: block args: arguments closure: closure.
 	result := nilObj.
 	sblock statements do: [ :node | result := node acceptVisitor: self ].
 	^ result
