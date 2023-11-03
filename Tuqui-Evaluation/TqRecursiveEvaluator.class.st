@@ -90,7 +90,7 @@ TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper
 	| behavior method ast environmentSize environment |
 	behavior := runtime behaviorOf: receiver.
 	"CHECK: Tal vez tenemos que revisar el superbehavior del método actual, no el del receiver "
-	isSuper ifTrue: [ behavior := runtime behaviorNext: behavior ].
+	isSuper ifTrue: [ behavior := runtime behaviorNext: (self runtime behaviorOf: self context classBinding) ].
 	method := self lookup: symbol on: behavior.
 	ast := runtime sexpressionsOf: method.
 
@@ -176,13 +176,14 @@ TqRecursiveEvaluator >> visitLiteral: literalAST [
 
 { #category : #visiting }
 TqRecursiveEvaluator >> visitMessage: messageAST [
-	| receiver arguments selector |
+	| isSuper receiver arguments selector |
+	isSuper := messageAST receiver isSuper.
 	receiver := messageAST receiver acceptVisitor: self.
-	arguments := messageAST arguments collect: [ :argumentAST |  argumentAST acceptVisitor: self ].
+	arguments := messageAST arguments collect: [ :argumentAST | argumentAST acceptVisitor: self ].
 	selector := messageAST selector.
 	undermessages at: selector ifPresent: [ :v | ^ v value: receiver value: arguments ].
 	"TODO: Soportar super"
-	^ self send: selector to: receiver  with: arguments super: false
+	^ self send: selector to: receiver  with: arguments super: isSuper
 ]
 
 { #category : #visiting }
