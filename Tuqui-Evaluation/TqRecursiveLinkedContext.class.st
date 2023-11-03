@@ -19,13 +19,6 @@ TqRecursiveLinkedContext >> evaluateFor: interpreter [
 	^ result
 ]
 
-{ #category : #initialization }
-TqRecursiveLinkedContext >> initializeForBlock: block args: blockArguments closure: tqClosure [ 
-	arguments := blockArguments.
-	method := block.
-	environment := tqClosure.
-]
-
 { #category : #'as yet unclassified' }
 TqRecursiveLinkedContext >> nonLocalReturn: anObject [
 
