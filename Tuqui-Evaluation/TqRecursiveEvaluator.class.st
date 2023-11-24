@@ -72,6 +72,11 @@ TqRecursiveEvaluator >> lookup: symbol on: behavior [
 ]
 
 { #category : #visiting }
+TqRecursiveEvaluator >> lookup: message on: behavior sendSite: messageAST [ 
+	^ messageAST lookupFor: behavior ifAbsent: [ self lookup: message on: behavior ].
+]
+
+{ #category : #visiting }
 TqRecursiveEvaluator >> primitiveClosureWhileFalse [
 	^ [ self
 		evaluateClosure: context self
@@ -88,11 +93,13 @@ TqRecursiveEvaluator >> primitiveClosureWhileTrue [
 { #category : #controlling }
 TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper [
 	| behavior method ast environmentSize environment |
-	behavior := runtime behaviorOf: receiver.
-	"CHECK: Tal vez tenemos que revisar el superbehavior del método actual, no el del receiver "
-	isSuper ifTrue: [ behavior := runtime behaviorNext: (self runtime behaviorOf: self context classBinding) ].
+	behavior := isSuper
+		ifTrue: [ runtime superBehaviorOf: context classBinding ]
+		ifFalse: [ runtime behaviorOf: receiver ].
 	method := self lookup: symbol on: behavior.
 	ast := runtime sexpressionsOf: method.
+
+	"method isBlock ifTrue: [ ^ method value: receiver value: arguments ]."
 
 	environmentSize  := runtime methodEnvironmentSize: method.
 	environment := runtime newEnvironmentSized: environmentSize.
@@ -104,33 +111,31 @@ TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper
 		parent: context;
 		method: method.
 
-
 	^ context evaluateFor: self.
 ]
 
 { #category : #visiting }
-TqRecursiveEvaluator >> send: aSymbol to: receiver with: arguments super: aBoolean sendSite: anSMessage [
+TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper sendSite: messageAST [
+	| behavior method ast environmentSize environment |
+	behavior := isSuper
+		ifTrue: [ runtime superBehaviorOf: context classBinding ]
+		ifFalse: [ runtime behaviorOf: receiver ].
+	method := self lookup: symbol on: behavior sendSite: messageAST.
+	ast := runtime sexpressionsOf: method.
 
-	| behavior method environment size |
-	behavior := aBoolean
-		            ifTrue: [ runtime superBehaviorOf: context classBinding ]
-		            ifFalse: [ runtime behaviorOf: receiver ].
-	method := self
-		          lookup: aSymbol
-		          startingAt: behavior
-		          sendSite: anSMessage.
-	method isBlock ifTrue: [ ^ method value: receiver value: arguments ].
-	self ASSERT: method notNil.
-	size := runtime methodEnvironmentSize: method.
-	environment := runtime newEnvironmentSized: size.
+	"method isBlock ifTrue: [ ^ method value: receiver value: arguments ]."
+
+	environmentSize  := runtime methodEnvironmentSize: method.
+	environment := runtime newEnvironmentSized: environmentSize.
 	context := TqRecursiveLinkedContext new
-		           runtime: runtime;
-		           self: receiver;
-		           arguments: arguments;
-		           environment: environment;
-		           parent: context;
-		           method: method.
-	^ context evaluateFor: self
+		runtime: runtime;
+		self: receiver;
+		arguments: arguments;
+		environment: environment;
+		parent: context;
+		method: method.
+
+	^ context evaluateFor: self.
 ]
 
 { #category : #visiting }
@@ -183,7 +188,7 @@ TqRecursiveEvaluator >> visitMessage: messageAST [
 	selector := messageAST selector.
 	undermessages at: selector ifPresent: [ :v | ^ v value: receiver value: arguments ].
 	"TODO: Soportar super"
-	^ self send: selector to: receiver  with: arguments super: isSuper
+	^ self send: selector to: receiver  with: arguments super: isSuper sendSite: messageAST
 ]
 
 { #category : #visiting }
@@ -222,5 +227,5 @@ TqRecursiveEvaluator >> visiteCascadeMessage: cascadeMessageAST for: receiver [
 	selector := cascadeMessageAST selector.
 	arguments := cascadeMessageAST arguments collect: [ :arg | arg acceptVisitor: self ].
 	"TODO: SUPER!!!"
-	^ self send: selector to: receiver with: arguments super: false.
+	^ self send: selector to: receiver with: arguments super: false sendSite: cascadeMessageAST.
 ]

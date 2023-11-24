@@ -71,6 +71,15 @@ TqMessage >> isMessage [
 	^true
 ]
 
+{ #category : #cache }
+TqMessage >> lookupFor: behavior ifAbsent: lookup [
+	| method |
+	cache ifNotNil: [ behavior = (cache at: 1) ifTrue: [ ^ cache at: 2 ] ].
+	cache := { behavior. method := lookup value. }.
+	^ method.
+	
+]
+
 { #category : #printing }
 TqMessage >> printOn: aStream indent: anInteger [
 	aStream tab: anInteger; nextPutAll: '{MessageId. '; print: selector; nextPutAll: '. '; cr.

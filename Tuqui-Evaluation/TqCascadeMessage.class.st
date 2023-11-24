@@ -72,6 +72,14 @@ TqCascadeMessage >> isCascadeMessage [
 	^true
 ]
 
+{ #category : #cache }
+TqCascadeMessage >> lookupFor: behavior ifAbsent: lookup [
+	| method |
+	cache ifNotNil: [ behavior = (cache at: 1) ifTrue: [ ^ cache at: 2 ] ].
+	cache := { behavior. method := lookup value. }.
+	^ method.
+]
+
 { #category : #accessing }
 TqCascadeMessage >> methodFor: requiredType [
 	| type |
