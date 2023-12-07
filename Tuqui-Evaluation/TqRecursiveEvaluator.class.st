@@ -73,7 +73,9 @@ TqRecursiveEvaluator >> lookup: symbol on: behavior [
 
 { #category : #visiting }
 TqRecursiveEvaluator >> lookup: message on: behavior sendSite: messageAST [ 
-	^ messageAST lookupFor: behavior ifAbsent: [ self lookup: message on: behavior ].
+	^ messageAST lookupFor: behavior ifAbsent: [
+		runtime lookupSymbol: message forBehavior: behavior ifAbsentPut: [
+			self lookup: message on: behavior]].
 ]
 
 { #category : #visiting }
