@@ -315,6 +315,28 @@ TuquiRuntime >> localSymbolFrom: anObject [
 	^ anObject bytes allButLast asString asSymbol
 ]
 
+{ #category : #cache }
+TuquiRuntime >> lookupSymbol: symbol forBehavior: behavior ifAbsentPut: callback [
+	| cache replaceIdx result |
+	cache := symbolCache at: symbol ifAbsentPut: [{
+		"Vamos a cachear exactamente 4 implementaciones de este mensaje"
+		nil.nil.
+		nil.nil.
+		nil.nil.
+		nil.nil.
+	}].
+	(cache at: 1) = behavior ifTrue: [  ^ cache at: 2. ].
+	(cache at: 3) = behavior ifTrue: [  ^ cache at: 4. ].
+	(cache at: 5) = behavior ifTrue: [  ^ cache at: 6. ].
+	(cache at: 7) = behavior ifTrue: [  ^ cache at: 8. ].
+
+	" Bueno, no está en la caché. Vamos a sacar a alguna de las implementaciones y resolver el símbolo."
+	replaceIdx := SharedRandom globalGenerator nextInteger: 4.
+	cache at: replaceIdx put: symbol.
+	cache at: replaceIdx put: (result := callback value).
+	^ result.
+]
+
 { #category : #accessing }
 TuquiRuntime >> metaclassInstanceClass: aTqObject [
 	^ aTqObject slotAt: metaclassInstanceClassIndex
