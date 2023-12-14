@@ -58,7 +58,7 @@ TqRecursiveEvaluator >> hasFinished [
 	^context isNil
 ]
 
-{ #category : #utilities }
+{ #category : #controlling }
 TqRecursiveEvaluator >> lookup: symbol on: behavior [ 
 	| methodDict superclassBehavior |
 	methodDict := runtime behaviorMethodDictionary:  behavior.
@@ -66,11 +66,18 @@ TqRecursiveEvaluator >> lookup: symbol on: behavior [
 	^ methodDict atKey: symbol ifAbsent: [^ self lookup: symbol on: superclassBehavior].
 ]
 
-{ #category : #visiting }
+{ #category : #controlling }
 TqRecursiveEvaluator >> lookup: message on: behavior sendSite: messageAST [ 
 	^ messageAST lookupFor: behavior ifAbsent: [
-		runtime lookupSymbol: message forBehavior: behavior ifAbsentPut: [
-			self lookup: message on: behavior]].
+		"(TuquiASTLog at: messageAST ifAbsentPut: [Bag new]) add: behavior."
+		self lookupWithoutSendSite: message on:behavior].
+]
+
+{ #category : #controlling }
+TqRecursiveEvaluator >> lookupWithoutSendSite: message on: behavior [ 
+	^ runtime lookupSymbol: message forBehavior: behavior ifAbsentPut: [
+		"Transcript show: 'AFTER GLOBAL '; show: message; show: ' '; show: behavior; cr."
+		self lookup: message on: behavior].
 ]
 
 { #category : #controlling }
@@ -79,10 +86,8 @@ TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper
 	behavior := isSuper
 		ifTrue: [ runtime superBehaviorOf: context classBinding ]
 		ifFalse: [ runtime behaviorOf: receiver ].
-	method := self lookup: symbol on: behavior.
+	method := self lookupWithoutSendSite: symbol on: behavior.
 	ast := runtime sexpressionsOf: method.
-
-	"method isBlock ifTrue: [ ^ method value: receiver value: arguments ]."
 
 	environmentSize  := runtime methodEnvironmentSize: method.
 	environment := runtime newEnvironmentSized: environmentSize.
@@ -97,7 +102,7 @@ TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper
 	^ context evaluateFor: self.
 ]
 
-{ #category : #visiting }
+{ #category : #controlling }
 TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper sendSite: messageAST [
 	| behavior method ast environmentSize environment |
 	behavior := isSuper
@@ -105,8 +110,6 @@ TqRecursiveEvaluator >> send: symbol to: receiver with: arguments super: isSuper
 		ifFalse: [ runtime behaviorOf: receiver ].
 	method := self lookup: symbol on: behavior sendSite: messageAST.
 	ast := runtime sexpressionsOf: method.
-
-	"method isBlock ifTrue: [ ^ method value: receiver value: arguments ]."
 
 	environmentSize  := runtime methodEnvironmentSize: method.
 	environment := runtime newEnvironmentSized: environmentSize.

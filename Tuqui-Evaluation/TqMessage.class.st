@@ -74,8 +74,19 @@ TqMessage >> isMessage [
 { #category : #cache }
 TqMessage >> lookupFor: behavior ifAbsent: lookup [
 	| method |
-	cache ifNotNil: [ behavior = (cache at: 1) ifTrue: [ ^ cache at: 2 ] ].
-	cache := { behavior. method := lookup value. }.
+	cache ifNotNil: [
+		| replaceIdx |
+		behavior = (cache at: 1) ifTrue: [ ^ cache at: 2 ].
+		behavior = (cache at: 3) ifTrue: [ ^ cache at: 4 ].
+		replaceIdx := (cache at: 3)
+			ifNil: [  2 ]
+			ifNotNil: [ SharedRandom globalGenerator nextInteger: 2 ].
+		method := lookup value.
+		cache at: replaceIdx * 2 - 1 put: behavior.
+		cache at: replaceIdx * 2 put: method.
+		^ method.
+	].
+	cache := { behavior. method := lookup value. nil. nil }.
 	^ method.
 	
 ]

@@ -98,5 +98,6 @@ TuquiTest >> setUp [
 
 	bootstrapper := TuquiRingBootstrapper new.
 	runtime := bootstrapper genesis image.
-	runtime useLinkedIterativeEvaluator
+	"runtime useLinkedIterativeEvaluator."
+	runtime useRecursiveEvaluator
 ]

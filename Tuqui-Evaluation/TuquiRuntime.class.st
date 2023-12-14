@@ -332,8 +332,8 @@ TuquiRuntime >> lookupSymbol: symbol forBehavior: behavior ifAbsentPut: callback
 
 	" Bueno, no está en la caché. Vamos a sacar a alguna de las implementaciones y resolver el símbolo."
 	replaceIdx := SharedRandom globalGenerator nextInteger: 4.
-	cache at: replaceIdx put: symbol.
-	cache at: replaceIdx put: (result := callback value).
+	cache at: replaceIdx * 2 - 1 put: behavior.
+	cache at: replaceIdx * 2 put: (result := callback value).
 	^ result.
 ]
 
